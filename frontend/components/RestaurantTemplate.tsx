@@ -80,8 +80,15 @@ export function RestaurantTemplate({ subdomain }: { subdomain: string }) {
       <div className="mx-auto max-w-md px-4 py-8">
         {/* Logo Section */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full border-4 border-teal-200 bg-linear-to-br from-teal-100 to-blue-100 text-5xl shadow-lg">
-            {restaurant.logo}
+          <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full border-4 border-teal-200 bg-linear-to-br from-teal-100 to-blue-100 shadow-lg overflow-hidden">
+            {restaurant.logo && restaurant.logo.startsWith('data:image') ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={restaurant.logo} alt={restaurant.name} className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-3xl font-bold text-teal-700">
+                {restaurant.name.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
         </div>
 

@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { X, Plus } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { X, Plus, Upload } from 'lucide-react';
 
 interface LinkItem {
   id: string;
@@ -46,6 +46,44 @@ export function AddRestaurantForm() {
 
   const [newLink, setNewLink] = useState<LinkItem>({ id: '', icon: '', title: '', description: '', url: '' });
   const [newHour, setNewHour] = useState<Hour>({ day: '', time: '' });
+
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be under 5 MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 400;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const base64 = canvas.toDataURL('image/jpeg', 0.85);
+        setFormData(prev => ({ ...prev, logo: base64 }));
+        setError(null);
+      };
+      img.src = ev.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    // reset input so re-selecting the same file triggers onChange
+    e.target.value = '';
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -134,10 +172,40 @@ export function AddRestaurantForm() {
             <input name="tagline" value={formData.tagline} onChange={handleInputChange} placeholder="Short description" className={field} />
           </div>
           <div>
-            <label className={label}>Logo emoji</label>
-            <div className="flex gap-2">
-              <input name="logo" value={formData.logo} onChange={handleInputChange} maxLength={2} className={`${field} text-center text-lg`} />
-              <div className="h-10 w-10 shrink-0 flex items-center justify-center text-2xl border border-zinc-200 rounded-md bg-zinc-50">{formData.logo}</div>
+            <label className={label}>Logo image</label>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleLogoUpload}
+              className="hidden"
+            />
+            <div className="flex gap-3 items-center">
+              {formData.logo ? (
+                <div className="relative h-16 w-16 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={formData.logo} alt="Logo preview" className="h-16 w-16 rounded-lg object-cover border border-zinc-200" />
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, logo: '' }))}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-zinc-900 text-white flex items-center justify-center hover:bg-zinc-700 transition"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="h-16 w-16 shrink-0 rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 flex items-center justify-center text-zinc-300">
+                  <Upload className="h-5 w-5" />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                className="flex items-center gap-1.5 text-sm text-zinc-600 border border-zinc-200 rounded-md px-3 h-9 hover:bg-zinc-50 transition"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                {formData.logo ? 'Replace' : 'Upload image'}
+              </button>
             </div>
           </div>
         </div>
