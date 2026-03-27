@@ -39,6 +39,8 @@ export function AddRestaurantForm() {
     email: '',
     primaryColor: '#18181b',
     secondaryColor: '#52525b',
+    pageTitle: '',
+    favicon: '',
   });
 
   const [links, setLinks] = useState<LinkItem[]>([]);
@@ -48,6 +50,7 @@ export function AddRestaurantForm() {
   const [newHour, setNewHour] = useState<Hour>({ day: '', time: '' });
 
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -82,6 +85,40 @@ export function AddRestaurantForm() {
     };
     reader.readAsDataURL(file);
     // reset input so re-selecting the same file triggers onChange
+    e.target.value = '';
+  };
+
+  const handleFaviconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Favicon must be under 2 MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const SIZE = 64;
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE;
+        canvas.height = SIZE;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, SIZE, SIZE);
+        const base64 = canvas.toDataURL('image/png');
+        setFormData(prev => ({ ...prev, favicon: base64 }));
+        setError(null);
+      };
+      img.src = ev.target?.result as string;
+    };
+    reader.readAsDataURL(file);
     e.target.value = '';
   };
 
@@ -127,7 +164,7 @@ export function AddRestaurantForm() {
 
       const result = await response.json();
       setSuccess(true);
-      setFormData({ subdomain: '', name: '', tagline: '', description: '', logo: '', priceRange: '€€', openingNote: 'Opens at 5:30 PM', language: 'English', address: '', phone: '', email: '', primaryColor: '#18181b', secondaryColor: '#52525b' });
+      setFormData({ subdomain: '', name: '', tagline: '', description: '', logo: '', priceRange: '€€', openingNote: 'Opens at 5:30 PM', language: 'English', address: '', phone: '', email: '', primaryColor: '#18181b', secondaryColor: '#52525b', pageTitle: '', favicon: '' });
       setLinks([]);
       setHours([]);
       setTimeout(() => { window.location.href = `http://${result.subdomain}.localhost:3000`; }, 2000);
@@ -170,6 +207,33 @@ export function AddRestaurantForm() {
           <div>
             <label className={label}>Tagline</label>
             <input name="tagline" value={formData.tagline} onChange={handleInputChange} placeholder="Short description" className={field} />
+          </div>
+          <div>
+            <label className={label}>Page title <span className="text-zinc-400 normal-case font-normal">(browser tab)</span></label>
+            <input name="pageTitle" value={formData.pageTitle} onChange={handleInputChange} placeholder={formData.name || 'My Restaurant'} className={field} />
+          </div>
+          <div>
+            <label className={label}>Favicon</label>
+            <input ref={faviconInputRef} type="file" accept="image/*" onChange={handleFaviconUpload} className="hidden" />
+            <div className="flex gap-3 items-center">
+              {formData.favicon ? (
+                <div className="relative h-10 w-10 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={formData.favicon} alt="Favicon preview" className="h-10 w-10 rounded border border-zinc-200 object-cover" />
+                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, favicon: '' }))} className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-zinc-900 text-white flex items-center justify-center hover:bg-zinc-700 transition">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="h-10 w-10 shrink-0 rounded border-2 border-dashed border-zinc-200 bg-zinc-50 flex items-center justify-center text-zinc-300">
+                  <Upload className="h-4 w-4" />
+                </div>
+              )}
+              <button type="button" onClick={() => faviconInputRef.current?.click()} className="flex items-center gap-1.5 text-sm text-zinc-600 border border-zinc-200 rounded-md px-3 h-9 hover:bg-zinc-50 transition">
+                <Upload className="h-3.5 w-3.5" />
+                {formData.favicon ? 'Replace' : 'Upload favicon'}
+              </button>
+            </div>
           </div>
           <div>
             <label className={label}>Logo image</label>
